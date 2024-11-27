@@ -1,0 +1,387 @@
+@use 'sass:color';
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+
+//Colour definitions
+$body-bg: #ffffff;
+$text-color: #000000;
+$primary-color: #3b82f6; // Base color
+$primary-dark: color.adjust($primary-color, $lightness: -10%);
+$primary-light: color.adjust($primary-color, $lightness: 10%);
+$color-light: #848bc82e;
+$info-color: #424242;
+$info-color-light:#BDBDBD;
+$navbar-bg: #1d4e89;
+$navbar-bg-light: color.adjust($navbar-bg, $lightness: 10%);
+$navbar-bg-light-2: color.adjust($navbar-bg, $lightness: 25%);
+$header-bg:#00bcd4;
+
+//Dimensions
+$card-border-radius: 2rem;
+$border-radius-1: 0.4rem;
+$border-radius-2: 0.8rem;
+$border-radius-3: 1.2rem;
+
+$card-padding: 1.8rem;
+$padding-1: 1.2rem;
+
+$card-shadow: 0 2rem 3rem var($color-light);
+
+html {
+    font-size: 14px;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    font-family: poppins, sans-serif;
+    font-size: 0.88rem;
+    user-select: none;
+    overflow-x: hidden;
+}
+
+.container {
+    display: grid;
+    width: 96%;
+    margin: 0 auto;
+    background: $body-bg;
+    gap: 1.8rem;
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: 60px 1fr;
+}
+
+.header {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 15px 0;
+    & #cityInput{
+        background-color: #e8f0fe;
+        border: none;
+        padding: 12px;
+        font-size: 16px;
+        border-radius: 25px;
+        color: #ffffff;
+        &:focus{
+            outline: none;
+        }
+    }
+    & #searchButton {
+        border: none;
+        font-size: 16px;
+        padding: 12px;
+        border-radius: 25px;
+        background-color: #000000;
+        color: #ffffff;
+        cursor: pointer;
+    }
+    & #locationButton{
+        border: none;
+        font-size: 16px;
+        padding: 12px;
+        border-radius: 25px;
+        background-color: $primary-color;
+        cursor: pointer;
+    }
+}
+
+.navBar {
+    height: 100vh;
+    background-color: $navbar-bg; 
+    grid-column: 1 / 2;
+    grid-row: 1 / 3;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.navBar .top {
+    background: $navbar-bg;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.navBar .top .close {
+    position: relative;
+    top: -30px;
+    font-size: 1.5rem; 
+    cursor: pointer;
+    display: none; 
+}
+
+.navBar .top .mainIcon {
+    display: flex;
+    gap: 1rem;
+}
+
+.navBar .top .mainIcon img{
+    width: 2.2rem;
+    height: 2.2rem;
+}
+
+@media (max-width: 768px) {
+    .navBar .top {
+      flex-direction: column;
+      align-items: flex-start; 
+    }
+  
+    .navBar .top .close {
+      align-self: flex-end; 
+      margin-top: 10px; 
+    }
+}
+  
+
+.sideMenu {
+    margin-top: auto;
+    width: 200px;
+    float: left;
+}
+
+.sideMenu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #ffffff; 
+    padding: 10px 0;
+}
+
+.sideMenu a span {
+    font-size: 1.6rem;
+    transition: all 300ms ease;
+}
+
+.sideMenu a.active{
+    background: $navbar-bg-light;
+    color: #ffffff;
+    margin-left: 0;
+}
+
+.sideMenu a.active:before {
+    content: "";
+    width: 6px;
+    height: 100%;
+    background: $navbar-bg-light;
+}
+
+.sideMenu a.active span {
+    color: #ffffff;
+    margin-left: calc(1rem - 9px);
+}
+
+.sideMenu a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.sideMenu a:hover span {
+    margin-left: 1rem;
+}
+
+.menuItem {
+    padding: 10px;
+    text-decoration: none;
+    color: #333;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.menuItem.active {
+    background-color: #0078d7;
+    color: white;
+}
+
+.contentContainer {
+    margin-left: 220px; /* Adjust based on side menu width */
+    padding: 20px;
+}
+
+.content {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.content.active {
+    display: block;
+    opacity: 1;
+}
+
+.close {
+    cursor: pointer;
+    text-align: right;
+    margin-top: 10px;
+}
+
+.main {
+    background-color: #d3d3d3a3;
+    grid-column: 2 / 3 ;
+    grid-row: 2 / 3;
+    padding: 20px;
+}
+
+.search {
+    margin-top: 20px;
+}
+
+.search input {
+    padding: 10px;
+    width: 250px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.search button {
+    padding: 10px 20px;
+    background-color: #0056a6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.search button:hover {
+    background-color: #004080;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    flex: 1 1 calc(25% - 20px);
+    max-width: 200px;
+}
+
+.card .icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+}
+
+.dashboardCards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.mainIcon {
+    
+    width: 100px; 
+    height: 100px;
+
+    
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain; 
+    }
+}
+
+.autocomplete-dropdown {
+    border: 1px solid #ddd;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: white;
+    position: absolute;
+    z-index: 1000;
+    width: 250px;
+    display: none; /* Initially hidden */
+}
+
+.autocomplete-dropdown div {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.autocomplete-dropdown div:hover {
+    background-color: #f0f0f0;
+}
+
+#temperatureChart, #airQualityChart {
+    width: 100%;
+    height: 400px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    outline: 0;
+    appearance: none;
+    border: 0;
+    text-decoration: none;
+    list-style: none;
+    box-sizing: border-box;
+}
+
+a {
+    color: $text-color;
+}
+
+img {
+    display: block;
+    width: 100%;
+}
+
+h1{
+    font-weight: 800;
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.2rem;
+}
+
+h3 {
+    font-size: 0.87rem;
+}
+
+h4 {
+    font-size: 0.8rem;
+}
+
+h5 {
+    font-size: 0.77rem;
+}
+
+small {
+    font-size: 0.75rem;
+}
+
+.text-muted {
+    color: $info-color;
+}
+
+p {
+    color: $text-color;
+}
