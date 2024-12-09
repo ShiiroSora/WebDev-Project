@@ -18,58 +18,75 @@ function showError(message) {
 // Fetch coordinates using OpenCage API
 async function fetchCoordinates(cityName) {
     const cacheKey = `coordinates-${cityName.toLowerCase()}`;
-    return getCachedData(cacheKey, async () => {
-        const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(cityName)}&key=${OPENCAGE_API_KEY}&limit=1`;
-        const response = await fetch(url);
+    const cached = getCache(cacheKey);
+    if (cached) {
+        console.log(`Using cached coordinates for ${cityName}`);
+        return cached;
+    }
 
-        if (!response.ok) throw new Error("Failed to fetch coordinates.");
+    const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(cityName)}&key=${OPENCAGE_API_KEY}&limit=1`;
+    const response = await fetch(url);
 
-        const data = await response.json();
-        if (data.results && data.results.length > 0) {
-            const geometry = data.results[0].geometry;
-            return { name: data.results[0].formatted, lat: geometry.lat, lon: geometry.lng };
-        }
-        throw new Error("Location not found.");
-    });
+    if (!response.ok) throw new Error("Failed to fetch coordinates.");
+
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+        const geometry = data.results[0].geometry;
+        const result = { name: data.results[0].formatted, lat: geometry.lat, lon: geometry.lng };
+        setCache(cacheKey, result); // Cache the result
+        return result;
+    }
+    throw new Error("Location not found.");
 }
 
 // Fetch weather data using Tomorrow.io API
 async function fetchWeatherData(city) {
     const cacheKey = `weather-${city.lat}-${city.lon}`;
-    return getCachedData(cacheKey, async () => {
-        const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=temperature,humidity,windSpeed&timesteps=current&units=metric&apikey=${TOMORROW_API_KEY}`;
-        const response = await fetch(url);
+    const cached = getCache(cacheKey);
+    if (cached) {
+        console.log(`Using cached weather data for ${city.name}`);
+        return cached;
+    }
 
-        if (!response.ok) throw new Error("Failed to fetch weather data.");
+    const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=temperature,humidity,windSpeed&timesteps=current&units=metric&apikey=${TOMORROW_API_KEY}`;
+    const response = await fetch(url);
 
-        const data = await response.json();
-        if (!data.data || !data.data.timelines) throw new Error("Weather data is missing or invalid.");
+    if (!response.ok) throw new Error("Failed to fetch weather data.");
 
-        const values = data.data.timelines[0].intervals[0].values;
+    const data = await response.json();
+    if (!data.data || !data.data.timelines) throw new Error("Weather data is missing or invalid.");
 
-        // Update the DOM elements
-        document.getElementById("temperatureValue").textContent = `${values.temperature} °C`;
-        document.getElementById("humidityValue").textContent = `${values.humidity} %`;
-        document.getElementById("windSpeedValue").textContent = `${values.windSpeed} m/s`;
+    const values = data.data.timelines[0].intervals[0].values;
 
-        return values; // Return the weather values
-    });
+    // Update UI
+    document.getElementById("temperatureValue").textContent = `${values.temperature} °C`;
+    document.getElementById("humidityValue").textContent = `${values.humidity} %`;
+    document.getElementById("windSpeedValue").textContent = `${values.windSpeed} m/s`;
+
+    setCache(cacheKey, values); // Cache the result
+    return values;
 }
 
 // Fetch air quality data using AQICN API
 async function fetchAirQualityData(city) {
     const cacheKey = `airQuality-${city.lat}-${city.lon}`;
-    return getCachedData(cacheKey, async () => {
-        const url = `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${AQICN_API_KEY}`;
-        const response = await fetch(url);
+    const cached = getCache(cacheKey);
+    if (cached) {
+        console.log(`Using cached air quality data for ${city.name}`);
+        return cached;
+    }
 
-        if (!response.ok) throw new Error("Failed to fetch air quality data.");
+    const url = `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${AQICN_API_KEY}`;
+    const response = await fetch(url);
 
-        const data = await response.json();
-        if (data.status !== "ok" || !data.data || !data.data.iaqi) throw new Error("Air quality data is missing or invalid.");
+    if (!response.ok) throw new Error("Failed to fetch air quality data.");
 
-        return data.data.iaqi; // Return the air quality metrics
-    });
+    const data = await response.json();
+    if (data.status !== "ok" || !data.data || !data.data.iaqi) throw new Error("Air quality data is missing or invalid.");
+
+    const iaqi = data.data.iaqi;
+    setCache(cacheKey, iaqi); // Cache the result
+    return iaqi;
 }
 
 // Fetch and display air quality metrics
@@ -141,15 +158,39 @@ document.getElementById("searchButton").addEventListener("click", async () => {
     }
 });
 
-function getCachedData(cacheKey, fetchFunction) {
-    if (apiCache[cacheKey]) {
-        console.log(`Using cached data for ${cacheKey}`);
-        return Promise.resolve(apiCache[cacheKey]);
-    }
-    return fetchFunction().then(data => {
-        apiCache[cacheKey] = data;
-        return data;
-    });
+function setCache(key, value, ttl = 300000) { // Default TTL: 5 minutes
+    apiCache[key] = {
+        value,
+        expiry: Date.now() + ttl
+    };
+    localStorage.setItem("apiCache", JSON.stringify(apiCache));
 }
+
+function getCache(key) {
+    const cached = apiCache[key];
+    if (cached && Date.now() < cached.expiry) {
+        return cached.value;
+    }
+    delete apiCache[key]; // Remove expired data
+    return null;
+}
+
+
+function saveCacheToStorage() {
+    console.log("Saving cache to localStorage...");
+    localStorage.setItem("apiCache", JSON.stringify(apiCache));
+}
+
+function loadCacheFromStorage() {
+    console.log("Loading cache from localStorage...");
+    const cachedData = localStorage.getItem("apiCache");
+    if (cachedData) {
+        Object.assign(apiCache, JSON.parse(cachedData));
+        console.log("Loaded cache:", apiCache);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", loadCacheFromStorage);
+window.addEventListener("beforeunload", saveCacheToStorage);
 
 
