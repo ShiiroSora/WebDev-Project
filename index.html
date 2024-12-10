@@ -107,9 +107,17 @@
                 </div>
                 <div id="graphsContent" class="content">
                     <h1>Graphs</h1>
-                    <p>Here are some graphs and visualizations.</p>
-                    <div id="temperatureChart" style="width: 100%; height: 400px;"></div>
-                    <div id="airQualityChart" style="width: 100%; height: 400px;"></div>
+                    <h2>Weather Trends</h2>
+                    <select id="dataSelector">
+                        <option value="temperature">Temperature</option>
+                        <option value="humidity">Humidity</option>
+                        <option value="windSpeed">Wind Speed</option>
+                    </select>
+                    <div id="temperatureChart" style="width: 100%; height: 400px;">
+                        <p id="graphPlaceholder" style="text-align: center; color: gray;">
+                            Search for a city to display temperature trends.
+                        </p>
+                    </div>
                 </div>
                 <div id="aboutContent" class="content">
                     <h1>About</h1>

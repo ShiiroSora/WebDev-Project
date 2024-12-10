@@ -171,18 +171,22 @@ document.getElementById("searchButton").addEventListener("click", async () => {
     try {
         const city = await fetchCoordinates(cityName);
 
-        // Fetch weather and air quality data using withLoading
+        // Fetch weather and air quality data
         await withLoading(() => fetchWeatherData(city));
-        
         await fetchAndDisplayAirQuality(city);
 
         // Update header with the city name
         document.querySelector("header h1").textContent = `Weather Dashboard - ${city.name}`;
+
+        // Always update the graph regardless of active tab
+        await updateTemperatureChart(city);
+
     } catch (error) {
         console.error("Error during city search:", error);
         showError("City not found or invalid. Please try again.");
     }
 });
+
 
 document.getElementById("searchInput").addEventListener("input", async (event) => {
     const query = event.target.value.trim();
@@ -311,22 +315,164 @@ const menuItems = document.querySelectorAll(".menuItem");
 const contentSections = document.querySelectorAll(".content");
 
 menuItems.forEach(menuItem => {
-    menuItem.addEventListener("click", event => {
+    menuItem.addEventListener("click", async event => {
         event.preventDefault();
 
-        // Remove 'active' class from all menu items and sections
+        // Clear active states
         menuItems.forEach(item => item.classList.remove("active"));
         contentSections.forEach(section => section.classList.remove("active"));
 
-        // Add 'active' class to the clicked menu item
+        // Set active states
         menuItem.classList.add("active");
-
-        // Show the associated content section
         const contentId = menuItem.getAttribute("data-content");
         const targetContent = document.getElementById(contentId);
+
         if (targetContent) {
             targetContent.classList.add("active");
+        }
+
+        // Check for city input before updating the chart
+        if (contentId === "graphsContent") {
+            const cityName = document.getElementById("searchInput").value.trim();
+            const selectedMetric = document.getElementById("dataSelector").value;
+
+            if (cityName) {
+                try {
+                    const city = await fetchCoordinates(cityName);
+                    await updateWeatherChart(city, selectedMetric);
+                } catch (error) {
+                    console.error("Error updating the chart:", error);
+                    showError("Unable to fetch data for the selected city. Please try again.");
+                }
+            } else {
+                console.warn("No city selected.");
+                showError("Please search for a city to display trends.");
+            }
         }
     });
 });
 
+
+/*
+Echart Visualisation Functions
+ */
+
+function initializeTemperatureChart() {
+    const chartDom = document.getElementById("temperatureChart");
+    const temperatureChart = echarts.init(chartDom);
+
+    const option = {
+        title: {
+            text: 'Hourly Temperature Trends',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        xAxis: {
+            type: 'category',
+            data: [], // Placeholder for time labels
+            name: 'Time'
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Temperature (°C)'
+        },
+        series: [
+            {
+                name: 'Temperature',
+                type: 'line',
+                data: [] // Placeholder for temperature data
+            }
+        ]
+    };
+
+    temperatureChart.setOption(option);
+
+    return temperatureChart;
+}
+
+async function fetchHourlyTemperatureData(city) {
+    const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=temperature&timesteps=1h&units=metric&apikey=${TOMORROW_API_KEY}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error("Failed to fetch hourly temperature data.");
+    }
+
+    const data = await response.json();
+    const intervals = data.data.timelines[0].intervals;
+
+    // Extract timestamps and temperatures
+    const times = intervals.map(interval => interval.startTime);
+    const temperatures = intervals.map(interval => interval.values.temperature);
+
+    return { times, temperatures };
+}
+
+async function updateWeatherChart(city, metric = "temperature") {
+    const fieldMap = {
+        temperature: "Temperature (°C)",
+        humidity: "Humidity (%)",
+        windSpeed: "Wind Speed (m/s)"
+    };
+
+    const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=${metric}&timesteps=1h&units=metric&apikey=${TOMORROW_API_KEY}`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${metric} data.`);
+        }
+
+        const data = await response.json();
+        const intervals = data.data.timelines[0].intervals;
+
+        // Extract timestamps and metric values
+        const times = intervals.map(interval => interval.startTime);
+        const values = intervals.map(interval => interval.values[metric]);
+
+        const placeholder = document.getElementById("graphPlaceholder");
+        if (placeholder) {
+            placeholder.style.display = "none";
+        }
+
+        const chart = initializeTemperatureChart();
+        chart.setOption({
+            title: {
+                text: `${fieldMap[metric]} Trends`
+            },
+            xAxis: {
+                data: times.map(time => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+            },
+            yAxis: {
+                name: fieldMap[metric]
+            },
+            series: [
+                {
+                    data: values
+                }
+            ]
+        });
+    } catch (error) {
+        console.error(`Error updating ${metric} chart:`, error);
+        showError(`Unable to display ${fieldMap[metric]}. Please try again.`);
+    }
+}
+
+document.getElementById("dataSelector").addEventListener("change", async (event) => {
+    const metric = event.target.value; // Get selected metric
+    const cityName = document.getElementById("searchInput").value.trim();
+
+    if (cityName) {
+        try {
+            const city = await fetchCoordinates(cityName);
+            await updateWeatherChart(city, metric);
+        } catch (error) {
+            console.error(`Error updating ${metric} chart:`, error);
+            showError(`Unable to display ${metric} trends. Please try again.`);
+        }
+    } else {
+        showError("Please search for a city to update the chart.");
+    }
+});
