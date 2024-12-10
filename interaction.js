@@ -137,12 +137,14 @@ async function fetchSuggestions(query) {
         const response = await fetch(url);
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch suggestions: ${response.status}`);
+            console.warn(`Failed to fetch suggestions: ${response.status}`);
+            return []; // Return empty array on failure
         }
 
         const data = await response.json();
         if (!data.results || data.results.length === 0) {
-            throw new Error("No suggestions found.");
+            console.warn("No suggestions found for query:", query);
+            return []; // Gracefully handle no results
         }
 
         // Extract formatted results and cache them
@@ -204,6 +206,12 @@ document.getElementById("searchInput").addEventListener("input", async (event) =
 function displaySuggestions(suggestions) {
     const suggestionsContainer = document.getElementById("autocompleteResults");
     suggestionsContainer.innerHTML = ""; // Clear existing suggestions
+
+    if (suggestions.length === 0) {
+        suggestionsContainer.style.display = "none"; // Hide dropdown if no suggestions
+        console.log("No suggestions to display.");
+        return;
+    }
 
     suggestions.forEach((suggestion) => {
         const suggestionItem = document.createElement("div");
