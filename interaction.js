@@ -130,19 +130,32 @@ async function fetchAndDisplayAirQuality(city) {
 }
 
 async function fetchSuggestions(query) {
+    console.log("Fetching suggestions for query:", query);
     const cacheKey = `suggestions-${query.toLowerCase()}`;
-    return getCachedData(cacheKey, async () => {
+    return getCache(cacheKey) || await withLoading(async () => {
         const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(query)}&key=${OPENCAGE_API_KEY}&limit=5`;
         const response = await fetch(url);
 
-        if (!response.ok) throw new Error("Failed to fetch suggestions.");
+        if (!response.ok) {
+            throw new Error(`Failed to fetch suggestions: ${response.status}`);
+        }
 
         const data = await response.json();
-        if (!data.results || data.results.length === 0) throw new Error("No suggestions found.");
+        if (!data.results || data.results.length === 0) {
+            throw new Error("No suggestions found.");
+        }
 
-        return data.results.map(result => result.formatted); // Return the list of suggestions
+        // Extract formatted results and cache them
+        const suggestions = data.results.map(result => result.formatted);
+        setCache(cacheKey, suggestions);
+        return suggestions;
     });
 }
+
+
+/*
+Search Related functions
+ */
 
 // Event listener for search button
 document.getElementById("searchButton").addEventListener("click", async () => {
@@ -168,6 +181,53 @@ document.getElementById("searchButton").addEventListener("click", async () => {
         showError("City not found or invalid. Please try again.");
     }
 });
+
+document.getElementById("searchInput").addEventListener("input", async (event) => {
+    const query = event.target.value.trim();
+
+    if (!query) {
+        clearSuggestions();
+        return;
+    }
+
+    try {
+        console.log("Fetching suggestions for query:", query);
+        const suggestions = await fetchSuggestions(query);
+        console.log("Fetched suggestions:", suggestions);
+        displaySuggestions(suggestions);
+    } catch (error) {
+        console.error("Error fetching suggestions:", error);
+        clearSuggestions(); // Hide dropdown on error
+    }
+});
+
+function displaySuggestions(suggestions) {
+    const suggestionsContainer = document.getElementById("autocompleteResults");
+    suggestionsContainer.innerHTML = ""; // Clear existing suggestions
+
+    suggestions.forEach((suggestion) => {
+        const suggestionItem = document.createElement("div");
+        suggestionItem.textContent = suggestion;
+        suggestionItem.className = "suggestion-item";
+
+        suggestionItem.addEventListener("click", () => {
+            document.getElementById("searchInput").value = suggestion;
+            clearSuggestions(); // Clear suggestions after selection
+        });
+
+        suggestionsContainer.appendChild(suggestionItem);
+    });
+
+    suggestionsContainer.style.display = "block"; // Show dropdown
+    console.log("Displayed suggestions:", suggestions);
+}
+
+function clearSuggestions() {
+    const suggestionsContainer = document.getElementById("autocompleteResults");
+    suggestionsContainer.innerHTML = "";
+    suggestionsContainer.style.display = "none"; // Hide suggestions
+}
+
 
 /*
 Caching Functions
