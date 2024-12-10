@@ -302,4 +302,31 @@ async function withLoading(asyncOperation) {
     }
 }
 
+/*
+ Tab Switching Functionalities
+ */
+
+ // Tab switching logic
+const menuItems = document.querySelectorAll(".menuItem");
+const contentSections = document.querySelectorAll(".content");
+
+menuItems.forEach(menuItem => {
+    menuItem.addEventListener("click", event => {
+        event.preventDefault();
+
+        // Remove 'active' class from all menu items and sections
+        menuItems.forEach(item => item.classList.remove("active"));
+        contentSections.forEach(section => section.classList.remove("active"));
+
+        // Add 'active' class to the clicked menu item
+        menuItem.classList.add("active");
+
+        // Show the associated content section
+        const contentId = menuItem.getAttribute("data-content");
+        const targetContent = document.getElementById(contentId);
+        if (targetContent) {
+            targetContent.classList.add("active");
+        }
+    });
+});
 
