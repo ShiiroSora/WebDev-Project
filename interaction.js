@@ -179,7 +179,7 @@ document.getElementById("searchButton").addEventListener("click", async () => {
         document.querySelector("header h1").textContent = `Weather Dashboard - ${city.name}`;
 
         // Always update the graph regardless of active tab
-        await updateTemperatureChart(city);
+        await updateWeatherChart(city);
 
     } catch (error) {
         console.error("Error during city search:", error);
@@ -334,12 +334,13 @@ menuItems.forEach(menuItem => {
         // Check for city input before updating the chart
         if (contentId === "graphsContent") {
             const cityName = document.getElementById("searchInput").value.trim();
-            const selectedMetric = document.getElementById("dataSelector").value;
-
+            const selectedMetric = document.querySelector(".dataToggle.active")?.getAttribute("data-graph") || "temperature";
+            const visualizationType = document.querySelector(".subMenuItem.active")?.getAttribute("data-visualization") || "line";
+        
             if (cityName) {
                 try {
                     const city = await fetchCoordinates(cityName);
-                    await updateWeatherChart(city, selectedMetric);
+                    await updateWeatherChart(city, selectedMetric, visualizationType);
                 } catch (error) {
                     console.error("Error updating the chart:", error);
                     showError("Unable to fetch data for the selected city. Please try again.");
@@ -349,6 +350,7 @@ menuItems.forEach(menuItem => {
                 showError("Please search for a city to display trends.");
             }
         }
+        
     });
 });
 
@@ -357,13 +359,13 @@ menuItems.forEach(menuItem => {
 Echart Visualisation Functions
  */
 
-function initializeTemperatureChart() {
-    const chartDom = document.getElementById("temperatureChart");
-    const temperatureChart = echarts.init(chartDom);
+function initializeWeatherChart() {
+    const chartDom = document.getElementById("weatherChart");
+    const weatherChart = echarts.init(chartDom);
 
     const option = {
         title: {
-            text: 'Hourly Temperature Trends',
+            text: 'Weather Trends',
             left: 'center'
         },
         tooltip: {
@@ -376,21 +378,27 @@ function initializeTemperatureChart() {
         },
         yAxis: {
             type: 'value',
-            name: 'Temperature (°C)'
+            name: 'Value'
         },
         series: [
             {
-                name: 'Temperature',
+                name: 'Metric',
                 type: 'line',
-                data: [] // Placeholder for temperature data
+                data: [] // Placeholder for metric data
             }
         ]
     };
 
-    temperatureChart.setOption(option);
+    weatherChart.setOption(option);
 
-    return temperatureChart;
+    // Automatically resize the chart when the window resizes
+    window.addEventListener("resize", () => {
+        weatherChart.resize();
+    });
+
+    return weatherChart;
 }
+
 
 async function fetchHourlyTemperatureData(city) {
     const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=temperature&timesteps=1h&units=metric&apikey=${TOMORROW_API_KEY}`;
@@ -410,7 +418,7 @@ async function fetchHourlyTemperatureData(city) {
     return { times, temperatures };
 }
 
-async function updateWeatherChart(city, metric = "temperature") {
+async function updateWeatherChart(city, metric = "temperature", chartType = "line") {
     const fieldMap = {
         temperature: "Temperature (°C)",
         humidity: "Humidity (%)",
@@ -437,31 +445,63 @@ async function updateWeatherChart(city, metric = "temperature") {
             placeholder.style.display = "none";
         }
 
-        const chart = initializeTemperatureChart();
-        chart.setOption({
+        const chart = initializeWeatherChart(); // Use a generic initialization
+        const option = {
             title: {
-                text: `${fieldMap[metric]} Trends`
+                text: `${fieldMap[metric]} ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`
+            },
+            tooltip: {
+                trigger: 'axis'
             },
             xAxis: {
-                data: times.map(time => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+                type: 'category',
+                data: times.map(time => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
+                name: 'Time'
             },
             yAxis: {
+                type: 'value',
                 name: fieldMap[metric]
             },
             series: [
                 {
+                    name: fieldMap[metric],
+                    type: chartType, // Dynamically set chart type (line, bar, radar)
                     data: values
                 }
             ]
-        });
+        };
+
+        // Special handling for radar charts
+        if (chartType === "radar") {
+            option.tooltip.trigger = 'item';
+            option.radar = {
+                indicator: times.map((time, index) => ({
+                    name: new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    max: Math.max(...values) + 5
+                }))
+            };
+            option.series[0] = {
+                name: fieldMap[metric],
+                type: "radar",
+                data: [
+                    {
+                        value: values,
+                        name: fieldMap[metric]
+                    }
+                ]
+            };
+        }
+
+        chart.setOption(option);
     } catch (error) {
-        console.error(`Error updating ${metric} chart:`, error);
-        showError(`Unable to display ${fieldMap[metric]}. Please try again.`);
+        console.error(`Error updating ${chartType} chart:`, error);
+        showError(`Unable to display ${chartType} chart. Please try again.`);
     }
 }
 
+
 document.getElementById("dataSelector").addEventListener("change", async (event) => {
-    const metric = event.target.value; // Get selected metric
+    const metric = event.target.value;
     const cityName = document.getElementById("searchInput").value.trim();
 
     if (cityName) {
@@ -475,4 +515,52 @@ document.getElementById("dataSelector").addEventListener("change", async (event)
     } else {
         showError("Please search for a city to update the chart.");
     }
+});
+
+const subMenuItems = document.querySelectorAll(".subMenuItem");
+const graphContents = document.querySelectorAll(".graphContent");
+
+subMenuItems.forEach(menuItem => {
+    menuItem.addEventListener("click", () => {
+        // Remove active class from all buttons
+        subMenuItems.forEach(item => item.classList.remove("active"));
+        // Add active class to the clicked button
+        menuItem.classList.add("active");
+
+        // Hide all graph contents
+        graphContents.forEach(content => content.classList.remove("active"));
+        // Show the corresponding graph content
+        const graphId = menuItem.getAttribute("data-graph");
+        document.getElementById(graphId).classList.add("active");
+    });
+});
+
+// Sub-navigation logic for graph types
+const visualizationButtons = document.querySelectorAll(".subMenuItem");
+
+visualizationButtons.forEach(button => {
+    button.addEventListener("click", async () => {
+        // Remove active class from all buttons
+        visualizationButtons.forEach(btn => btn.classList.remove("active"));
+        button.classList.add("active");
+
+        // Get the selected visualization type
+        const visualizationType = button.getAttribute("data-visualization");
+
+        // Get the current metric and city
+        const metric = document.querySelector(".dataToggle.active")?.getAttribute("data-graph") || "temperature";
+        const cityName = document.getElementById("searchInput").value.trim();
+
+        if (cityName) {
+            try {
+                const city = await fetchCoordinates(cityName);
+                await updateWeatherChart(city, metric, visualizationType);
+            } catch (error) {
+                console.error(`Error updating ${visualizationType} chart:`, error);
+                showError(`Unable to display ${visualizationType} chart. Please try again.`);
+            }
+        } else {
+            showError("Please search for a city to display the graph.");
+        }
+    });
 });
