@@ -361,32 +361,38 @@ Echart Visualisation Functions
 
 function initializeWeatherChart() {
     const chartDom = document.getElementById("weatherChart");
+
+    // Check if an existing chart instance is associated with the DOM element
+    if (echarts.getInstanceByDom(chartDom)) {
+        echarts.dispose(chartDom); // Dispose of the existing instance
+    }
+
     const weatherChart = echarts.init(chartDom);
 
     const option = {
         title: {
             text: 'Weather Trends',
-            left: 'center'
+            left: 'center',
         },
         tooltip: {
-            trigger: 'axis'
+            trigger: 'axis',
         },
         xAxis: {
             type: 'category',
             data: [], // Placeholder for time labels
-            name: 'Time'
+            name: 'Time',
         },
         yAxis: {
             type: 'value',
-            name: 'Value'
+            name: 'Value',
         },
         series: [
             {
                 name: 'Metric',
                 type: 'line',
-                data: [] // Placeholder for metric data
-            }
-        ]
+                data: [], // Placeholder for metric data
+            },
+        ],
     };
 
     weatherChart.setOption(option);
@@ -398,7 +404,6 @@ function initializeWeatherChart() {
 
     return weatherChart;
 }
-
 
 async function fetchHourlyTemperatureData(city) {
     const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=temperature&timesteps=1h&units=metric&apikey=${TOMORROW_API_KEY}`;
@@ -422,7 +427,7 @@ async function updateWeatherChart(city, metric = "temperature", chartType = "lin
     const fieldMap = {
         temperature: "Temperature (°C)",
         humidity: "Humidity (%)",
-        windSpeed: "Wind Speed (m/s)"
+        windSpeed: "Wind Speed (m/s)",
     };
 
     const url = `https://api.tomorrow.io/v4/timelines?location=${city.lat},${city.lon}&fields=${metric}&timesteps=1h&units=metric&apikey=${TOMORROW_API_KEY}`;
@@ -445,30 +450,30 @@ async function updateWeatherChart(city, metric = "temperature", chartType = "lin
             placeholder.style.display = "none";
         }
 
-        const chart = initializeWeatherChart(); // Use a generic initialization
+        const chart = initializeWeatherChart(); // Reinitialize chart each time
         const option = {
             title: {
-                text: `${fieldMap[metric]} ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`
+                text: `${fieldMap[metric]} ${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
             },
             tooltip: {
-                trigger: 'axis'
+                trigger: 'axis',
             },
             xAxis: {
                 type: 'category',
                 data: times.map(time => new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
-                name: 'Time'
+                name: 'Time',
             },
             yAxis: {
                 type: 'value',
-                name: fieldMap[metric]
+                name: fieldMap[metric],
             },
             series: [
                 {
                     name: fieldMap[metric],
                     type: chartType, // Dynamically set chart type (line, bar, radar)
-                    data: values
-                }
-            ]
+                    data: values,
+                },
+            ],
         };
 
         // Special handling for radar charts
@@ -477,8 +482,8 @@ async function updateWeatherChart(city, metric = "temperature", chartType = "lin
             option.radar = {
                 indicator: times.map((time, index) => ({
                     name: new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    max: Math.max(...values) + 5
-                }))
+                    max: Math.max(...values) + 5,
+                })),
             };
             option.series[0] = {
                 name: fieldMap[metric],
@@ -486,9 +491,9 @@ async function updateWeatherChart(city, metric = "temperature", chartType = "lin
                 data: [
                     {
                         value: values,
-                        name: fieldMap[metric]
-                    }
-                ]
+                        name: fieldMap[metric],
+                    },
+                ],
             };
         }
 
@@ -499,24 +504,7 @@ async function updateWeatherChart(city, metric = "temperature", chartType = "lin
     }
 }
 
-
-document.getElementById("dataSelector").addEventListener("change", async (event) => {
-    const metric = event.target.value;
-    const cityName = document.getElementById("searchInput").value.trim();
-
-    if (cityName) {
-        try {
-            const city = await fetchCoordinates(cityName);
-            await updateWeatherChart(city, metric);
-        } catch (error) {
-            console.error(`Error updating ${metric} chart:`, error);
-            showError(`Unable to display ${metric} trends. Please try again.`);
-        }
-    } else {
-        showError("Please search for a city to update the chart.");
-    }
-});
-
+//Charts button function
 const subMenuItems = document.querySelectorAll(".subMenuItem");
 const graphContents = document.querySelectorAll(".graphContent");
 
@@ -563,4 +551,23 @@ visualizationButtons.forEach(button => {
             showError("Please search for a city to display the graph.");
         }
     });
+});
+
+//Function for the dropdown menu for linechart
+document.getElementById("metricSelector").addEventListener("change", async (event) => {
+    const selectedMetric = event.target.value; // Get the selected metric
+    const cityName = document.getElementById("searchInput").value.trim(); // Get the current city name
+
+    if (cityName) {
+        try {
+            const city = await fetchCoordinates(cityName); // Fetch city coordinates
+            const visualizationType = document.querySelector(".subMenuItem.active")?.getAttribute("data-visualization") || "line"; // Get selected visualization type
+            await updateWeatherChart(city, selectedMetric, visualizationType); // Update the chart
+        } catch (error) {
+            console.error(`Error updating chart for metric ${selectedMetric}:`, error);
+            showError(`Unable to update chart for ${selectedMetric}. Please try again.`);
+        }
+    } else {
+        showError("Please search for a city to update the chart.");
+    }
 });

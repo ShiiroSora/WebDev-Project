@@ -113,12 +113,21 @@
                         <button class="subMenuItem" data-visualization="bar">Bar Chart</button>
                         <button class="subMenuItem" data-visualization="radar">Radar Chart</button>
                     </div>
-                    <div id="weatherChart" class="graphContainer" style="width: 100%; height: 500px;">
-                        <p id="graphPlaceholder" style="text-align: center; color: gray;">
-                            Search for a city to display weather trends.
-                        </p>
+                    <div style="display: flex; align-items: flex-start;">
+                        <!-- Dropdown menu -->
+                        <select id="metricSelector" style="margin-right: 20px; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                            <option value="temperature" selected>Temperature</option>
+                            <option value="humidity">Humidity</option>
+                            <option value="windSpeed">Wind Speed</option>
+                        </select>
+                        <!-- Chart container -->
+                        <div id="weatherChart" class="graphContainer" style="flex-grow: 1; height: 500px;">
+                            <p id="graphPlaceholder" style="text-align: center; color: gray;">
+                                Search for a city to display weather trends.
+                            </p>
+                        </div>
                     </div>
-                </div>             
+                </div>                    
                 <div id="aboutContent" class="content">
                     <h1>About</h1>
                     <p>Learn more about this application.</p>

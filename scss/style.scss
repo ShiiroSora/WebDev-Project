@@ -361,7 +361,7 @@ body {
 
 .subNavBar {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     margin-bottom: 20px;
     gap: 10px;
 }
@@ -387,17 +387,43 @@ body {
 }
 
 .graphContainer {
-    width: 100%;
+    flex-grow: 1;
+    width: 90%;
     height: 500px; /* Increased height for better visibility */
     margin: 0 auto; /* Centers the graph container */
+    margin-left: 0;
 }
 
-.graphContent {
-    display: none;
+#graphsContent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Aligns content to the left */
+    padding-left: 20px; /* Adds some padding from the left */
 }
 
-.graphContent.active {
-    display: block;
+#graphsContent h1 {
+    text-align: left; /* Ensures the heading is left-aligned */
+    margin-bottom: 10px; /* Adds spacing below the heading */
+}
+
+#graphsContent h2 {
+    text-align: left;
+    margin-bottom: 20px; /* Adds spacing below the subheading */
+}
+
+#metricSelector {
+    margin-right: 20px;
+    font-size: 14px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+#metricSelector:focus {
+    outline: none;
+    border-color: #0078d7;
 }
 
 .spinner {
